@@ -617,6 +617,17 @@ unsafe extern "C" {
     // HermesRuntime-specific
     // -----------------------------------------------------------------------
 
+    pub fn hermes__CompileToHermesBytecode(
+        data: *const u8,
+        len: usize,
+        source_url: *const c_char,
+        source_url_len: usize,
+        out_bytecode: *mut *mut u8,
+        out_bytecode_len: *mut usize,
+    ) -> bool;
+
+    pub fn hermes__BytecodeBuffer__Free(data: *mut u8);
+
     pub fn hermes__IsHermesBytecode(data: *const u8, len: usize) -> bool;
     pub fn hermes__GetBytecodeVersion() -> u32;
     pub fn hermes__PrefetchHermesBytecode(data: *const u8, len: usize);

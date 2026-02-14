@@ -495,6 +495,42 @@ impl Runtime {
         Ok(())
     }
 
+    /// Compile JavaScript source into Hermes bytecode (HBC).
+    ///
+    /// Returns bytecode bytes that can be persisted and loaded later.
+    pub fn compile_to_hbc(code: &str, source_url: &str) -> Result<Vec<u8>> {
+        let mut bytecode_ptr: *mut u8 = std::ptr::null_mut();
+        let mut bytecode_len: usize = 0;
+        let is_compiled = unsafe {
+            hermes__CompileToHermesBytecode(
+                code.as_ptr(),
+                code.len(),
+                source_url.as_ptr() as *const i8,
+                source_url.len(),
+                &mut bytecode_ptr,
+                &mut bytecode_len,
+            )
+        };
+        if !is_compiled {
+            return Err(Error::RuntimeError(
+                "failed to compile JavaScript to Hermes bytecode".into(),
+            ));
+        }
+
+        if bytecode_len == 0 {
+            return Ok(Vec::new());
+        }
+        if bytecode_ptr.is_null() {
+            return Err(Error::RuntimeError(
+                "Hermes compiler returned a null bytecode pointer".into(),
+            ));
+        }
+
+        let bytecode = unsafe { std::slice::from_raw_parts(bytecode_ptr, bytecode_len).to_vec() };
+        unsafe { hermes__BytecodeBuffer__Free(bytecode_ptr) };
+        Ok(bytecode)
+    }
+
     /// Reset the timezone cache (e.g. after system timezone change).
     pub fn reset_timezone_cache(&self) {
         unsafe { hermes__Runtime__ResetTimezoneCache(self.raw) }

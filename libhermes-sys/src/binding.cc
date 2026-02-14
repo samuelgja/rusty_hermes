@@ -3,6 +3,7 @@
 
 #include "binding.hpp"
 
+#include <hermes/CompileJS.h>
 #include <hermes/hermes.h>
 #include <jsi/jsi.h>
 
@@ -1480,6 +1481,48 @@ static facebook::hermes::IHermesRootAPI* getRootAPI() {
 
 static facebook::hermes::IHermes* getIHermes(HermesRt* hrt) {
   return jsi::castInterface<facebook::hermes::IHermes>(hrt->runtime.get());
+}
+
+bool hermes__CompileToHermesBytecode(
+    const uint8_t* data, size_t len, const char* source_url,
+    size_t source_url_len, uint8_t** out_bytecode, size_t* out_bytecode_len) {
+  if (!out_bytecode || !out_bytecode_len) {
+    return false;
+  }
+  *out_bytecode = nullptr;
+  *out_bytecode_len = 0;
+
+  if (!data && len > 0) {
+    return false;
+  }
+
+  const std::string source(reinterpret_cast<const char*>(data), len);
+  std::string bytecode;
+
+  const bool is_compiled = (source_url && source_url_len > 0)
+      ? ::hermes::compileJS(
+            source, std::string(source_url, source_url_len), bytecode)
+      : ::hermes::compileJS(source, bytecode);
+  if (!is_compiled) {
+    return false;
+  }
+
+  if (bytecode.empty()) {
+    return true;
+  }
+
+  auto* out = static_cast<uint8_t*>(malloc(bytecode.size()));
+  if (!out) {
+    return false;
+  }
+  memcpy(out, bytecode.data(), bytecode.size());
+  *out_bytecode = out;
+  *out_bytecode_len = bytecode.size();
+  return true;
+}
+
+void hermes__BytecodeBuffer__Free(uint8_t* data) {
+  free(data);
 }
 
 bool hermes__IsHermesBytecode(const uint8_t* data, size_t len) {

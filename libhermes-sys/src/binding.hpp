@@ -480,6 +480,20 @@ void hermes__WeakObject__Release(void* pv);
 // HermesRuntime-specific
 // ---------------------------------------------------------------------------
 
+// Compile JavaScript source into Hermes bytecode (HBC).
+// On success, returns true and sets `*out_bytecode` + `*out_bytecode_len`.
+// The returned buffer is malloc'd and must be released with
+// hermes__BytecodeBuffer__Free.
+bool hermes__CompileToHermesBytecode(
+    const uint8_t* data,
+    size_t len,
+    const char* source_url,
+    size_t source_url_len,
+    uint8_t** out_bytecode,
+    size_t* out_bytecode_len);
+
+void hermes__BytecodeBuffer__Free(uint8_t* data);
+
 bool hermes__IsHermesBytecode(const uint8_t* data, size_t len);
 uint32_t hermes__GetBytecodeVersion(void);
 void hermes__PrefetchHermesBytecode(const uint8_t* data, size_t len);

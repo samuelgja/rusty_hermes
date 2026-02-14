@@ -566,6 +566,38 @@ fn bytecode_version() {
 }
 
 #[test]
+fn compile_to_hbc() {
+    let bytecode = Runtime::compile_to_hbc("1 + 2", "compiled.js").unwrap();
+    assert!(!bytecode.is_empty());
+    assert!(Runtime::is_hermes_bytecode(&bytecode));
+    assert!(Runtime::bytecode_sanity_check(&bytecode));
+
+    unsafe {
+        let raw_rt = libhermes_sys::hermes__Runtime__New();
+        assert!(!raw_rt.is_null());
+
+        let source_url = b"compiled.hbc";
+        let result = libhermes_sys::hermes__Runtime__EvaluateJavaScript(
+            raw_rt,
+            bytecode.as_ptr(),
+            bytecode.len(),
+            source_url.as_ptr() as *const i8,
+            source_url.len(),
+        );
+        assert!(!libhermes_sys::hermes__Runtime__HasPendingError(raw_rt));
+        assert_eq!(result.kind, libhermes_sys::HermesValueKind_Number);
+        assert_eq!(result.data.number, 3.0);
+
+        libhermes_sys::hermes__Runtime__Delete(raw_rt);
+    }
+}
+
+#[test]
+fn compile_to_hbc_invalid_javascript() {
+    assert!(Runtime::compile_to_hbc("let = ", "invalid.js").is_err());
+}
+
+#[test]
 fn bytecode_checks() {
     // Random bytes are not valid bytecode
     let data = b"not bytecode";

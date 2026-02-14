@@ -2,6 +2,7 @@ use cmake::Config;
 use std::collections::HashSet;
 use std::env;
 use std::path::PathBuf;
+use std::process::Command;
 
 fn main() {
     let hermes_src_dir = "hermes";
@@ -24,6 +25,18 @@ fn main() {
         .build();
 
     let hermes_build_dir = format!("{}/build", hermes_build.display());
+
+    // Build compileJS explicitly so public HBC compilation symbols are available.
+    let status = Command::new("cmake")
+        .arg("--build")
+        .arg(&hermes_build_dir)
+        .arg("--target")
+        .arg("compileJS")
+        .status()
+        .expect("failed to execute cmake --build for compileJS");
+    if !status.success() {
+        panic!("failed to build Hermes compileJS target");
+    }
 
     // Expose the build directory to dependent crates via DEP_HERMES_BUILD_DIR.
     println!("cargo:build_dir={}", hermes_build_dir);
